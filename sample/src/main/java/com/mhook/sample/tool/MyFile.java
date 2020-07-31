@@ -2,17 +2,69 @@ package com.mhook.sample.tool;
 
 import android.content.Context;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
  * Created by ASUS on 2020/7/29.
  */
 
+<<<<<<< HEAD:sample/src/main/java/com/mhook/sample/tool/MyFile.java
+public class MyFile {
+=======
 public class FileTool {
+>>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8:sample/src/main/java/com/mhook/sample/tool/FileTool.java
+    public static String readLine(File file){
+        try {
+            InputStreamReader reader=new InputStreamReader(new FileInputStream(file));
+            BufferedReader bufferedReader=new BufferedReader(reader);
+            return bufferedReader.readLine();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+    public static byte[] assets(Context context,String fileName) {
+        try {
+            InputStream inputStream = context.getAssets().open(fileName);
+            ByteArrayOutputStream swapStream = new ByteArrayOutputStream();
+            byte[] buff = new byte[100]; //buff用于存放循环读取的临时数据 
+            int rc = 0;
+            while ((rc = inputStream.read(buff, 0, 100)) > 0) {
+                swapStream.write(buff, 0, rc);
+            }
+            return swapStream.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    public static String assetsText(Context context,String fileName) {
+        try {
+            InputStream inputStream = context.getAssets().open(fileName);
+            ByteArrayOutputStream swapStream = new ByteArrayOutputStream();
+            byte[] buff = new byte[100]; //buff用于存放循环读取的临时数据 
+            int rc = 0;
+            while ((rc = inputStream.read(buff, 0, 100)) > 0) {
+                swapStream.write(buff, 0, rc);
+            }
+            return swapStream.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static int getFileSize(Context context, String assetsFileName) {
         int result;
         try {

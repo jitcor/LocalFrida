@@ -39,4 +39,11 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation project(':libFridaApi')
     implementation 'org.apache.commons:commons-lang3:3.9'
+<<<<<<< HEAD
+//    implementation 'com.github.kbiakov:CodeView-Android:1.3.2'
+=======
+    implementation 'com.github.kbiakov:CodeView-Android:1.3.2'
+>>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
+    implementation 'commons-io:commons-io:2.4'
+    implementation 'com.nabinbhandari.android:permissions:3.8'
 }

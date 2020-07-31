@@ -5,25 +5,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:padding="@dimen/bullet_gap_width"
+<<<<<<< HEAD
+    tools:context=".task.MainActivity">
+=======
     tools:context=".MainActivity">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!" />
+>>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
 
     <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="test"
-        android:onClick="test"
-        android:clickable="true"/>
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="go"
+        android:text="注入"
         android:onClick="go"
         android:clickable="true"/>
-
+    <TextView
+        android:text="@string/summany"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+<<<<<<< HEAD
+    <ImageView
+        android:src="@drawable/js_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/message"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false"/>
+=======
+    <io.github.kbiakov.codeview.CodeView
+        android:id="@+id/code_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+>>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
 </LinearLayout>

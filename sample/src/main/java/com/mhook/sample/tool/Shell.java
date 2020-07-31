@@ -10,21 +10,21 @@ import java.util.List;
  * ShellUtil
  * <ul>
  * <strong>Check root</strong>
- * <li>{@link ShellUtil#permission()}</li>
+ * <li>{@link Shell#permission()}</li>
  * </ul>
  * <ul>
  * <strong>Execte command</strong>
- * <li>{@link ShellUtil#execCommand(String, boolean)}</li>
- * <li>{@link ShellUtil#execCommand(String, boolean, boolean)}</li>
- * <li>{@link ShellUtil#execCommand(List, boolean)}</li>
- * <li>{@link ShellUtil#execCommand(List, boolean, boolean)}</li>
- * <li>{@link ShellUtil#execCommand(String[], boolean)}</li>
- * <li>{@link ShellUtil#execCommand(String[], boolean, boolean)}</li>
+ * <li>{@link Shell#execCommand(String, boolean)}</li>
+ * <li>{@link Shell#execCommand(String, boolean, boolean)}</li>
+ * <li>{@link Shell#execCommand(List, boolean)}</li>
+ * <li>{@link Shell#execCommand(List, boolean, boolean)}</li>
+ * <li>{@link Shell#execCommand(String[], boolean)}</li>
+ * <li>{@link Shell#execCommand(String[], boolean, boolean)}</li>
  * </ul>
  * 
  * @author <a href="http://www.trinea.cn" target="_blank">Trinea</a> 2013-5-16
  */
-public class ShellUtil {
+public class Shell {
 
     public static final String COMMAND_SU       = "su";
     public static final String COMMAND_SH       = "sh";
@@ -48,7 +48,7 @@ public class ShellUtil {
      * @param command command
      * @param isRoot whether need to run with root
      * @return
-     * @see ShellUtil#execCommand(String[], boolean, boolean)
+     * @see Shell#execCommand(String[], boolean, boolean)
      */
     public static CommandResult execCommand(String command, boolean isRoot) {
         return execCommand(new String[] {command}, isRoot, true);
@@ -60,7 +60,7 @@ public class ShellUtil {
      * @param commands command list
      * @param isRoot whether need to run with root
      * @return
-     * @see ShellUtil#execCommand(String[], boolean, boolean)
+     * @see Shell#execCommand(String[], boolean, boolean)
      */
     public static CommandResult execCommand(List<String> commands, boolean isRoot) {
         return execCommand(commands == null ? null : commands.toArray(new String[] {}), isRoot, true);
@@ -72,7 +72,7 @@ public class ShellUtil {
      * @param commands command array
      * @param isRoot whether need to run with root
      * @return
-     * @see ShellUtil#execCommand(String[], boolean, boolean)
+     * @see Shell#execCommand(String[], boolean, boolean)
      */
     public static CommandResult execCommand(String[] commands, boolean isRoot) {
         return execCommand(commands, isRoot, true);
@@ -85,7 +85,7 @@ public class ShellUtil {
      * @param isRoot whether need to run with root
      * @param isNeedResultMsg whether need result msg
      * @return
-     * @see ShellUtil#execCommand(String[], boolean, boolean)
+     * @see Shell#execCommand(String[], boolean, boolean)
      */
     public static CommandResult execCommand(String command, boolean isRoot, boolean isNeedResultMsg) {
         return execCommand(new String[] {command}, isRoot, isNeedResultMsg);
@@ -104,7 +104,7 @@ public class ShellUtil {
      * @param isRoot whether need to run with root
      * @param isNeedResultMsg whether need result msg
      * @return
-     * @see ShellUtil#execCommand(String[], boolean, boolean)
+     * @see Shell#execCommand(String[], boolean, boolean)
      */
     public static CommandResult execCommand(List<String> commands, boolean isRoot, boolean isNeedResultMsg) {
         return execCommand(commands == null ? null : commands.toArray(new String[] {}), isRoot, isNeedResultMsg);

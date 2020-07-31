@@ -1,12 +1,14 @@
-package com.mhook.sample.task;
+package com.mhook.sample.tool;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.mhook.libfridaapi.FridaApi;
 import com.mhook.libfridaapi.OnFridaListener;
-import com.mhook.sample.tool.App;
-import com.mhook.sample.tool.FileTool;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,11 +22,14 @@ public class FridaTaskWrapper {
     public static final String TAG="FridaTaskWrapper";
     private OnFridaTaskListener fridaTaskListener;
     private FridaApi fridaTask;
+
+    private final String process;
     public FridaTaskWrapper(Context context,String process, String script,int port){
+        this.process=process;
         try {
             String filesPath=context.getFilesDir().getAbsolutePath();
             String dexPath=filesPath + "/" + App.ASSETS_FRIDA_NAME;
-            if(FileTool.copyToFiles(context,App.ASSETS_FRIDA_NAME,dexPath)){
+            if(MyFile.copyToFiles(context,App.ASSETS_FRIDA_NAME,dexPath)){
                 DexClassLoader dexClassLoader = new DexClassLoader(dexPath, filesPath,  null,context.getClassLoader());
                 fridaTask = (FridaApi) newObject(dexClassLoader,App.ASSETS_FRIDA_CLASS_MAIN,new Object[]{process,script,port});
                 fridaTask.setFridaTaskListener(new OnFridaListener() {
@@ -32,6 +37,37 @@ public class FridaTaskWrapper {
                     public void onStarted() {
                         if(fridaTaskListener!=null){
                             fridaTaskListener.onStarted();
+                        }
+                    }
+
+                    @Override
+                    public void onMessage(String msg) {
+                        if(TextUtils.isEmpty(msg)){
+                            return;
+                        }
+                        try {
+                            JSONObject jsonObject=new JSONObject(msg);
+                            String type=jsonObject.getString("type");
+                            if(TextUtils.equals(type,"send")||TextUtils.equals(type,"log")){
+                                if(fridaTaskListener!=null){
+                                    fridaTaskListener.onMessage(jsonObject.getString("payload"));
+                                }
+                            }else if (TextUtils.equals(type,"error")){
+                                if(fridaTaskListener!=null){
+                                    fridaTaskListener.onMessage(jsonObject.getString("stack"));
+                                }
+                            }
+//                            type = message["type"]
+//                            msg = message
+//                            if type == "send":
+//                            msg = message["payload"]
+//                            elif type == 'error':
+//                            msg = message['stack']
+//    else:
+//                            msg = message
+//                            print(msg)
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
                     }
 
@@ -48,6 +84,9 @@ public class FridaTaskWrapper {
         }
     }
 
+    public String getProcess() {
+        return process;
+    }
     public FridaTaskWrapper setFridaTaskListener(OnFridaTaskListener fridaTaskListener) {
         this.fridaTaskListener = fridaTaskListener;
         return this;
@@ -67,7 +106,7 @@ public class FridaTaskWrapper {
 
     public interface OnFridaTaskListener {
         void onStarted();
-
+        void onMessage(String msg);
         void onStopped();
     }
 

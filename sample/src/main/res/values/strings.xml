@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">sample</string>
+    <string name="summany">
+<<<<<<< HEAD
+        将一个或多个js脚本放在/sdcard/LocalFrida/目录下，第一行为注入进程名并以//开头，具体例子如下:
+=======
+        将js脚本放在/sdcard/LocalFrida/目录下，第一行为注入进程名并以//开头，具体例子如下:
+>>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
+    </string>
 </resources>

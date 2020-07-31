@@ -32,5 +32,10 @@ public class Channel<T> {
         this.message = message;
         notifyAll();
     }
+    public synchronized void reset(){
+        notifyAll();
+        message=null;
+        empty=true;
+    }
 }
 

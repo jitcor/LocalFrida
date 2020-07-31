@@ -7,7 +7,7 @@ import android.text.TextUtils;
  * Created by ASUS on 2020/7/29.
  */
 
-public class BuildTool {
+public class MyBuild {
     public enum CpuType {
         ARM, ARM64, X86,UNKNOWN
     }

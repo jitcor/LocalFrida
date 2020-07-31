@@ -17,12 +17,16 @@ import java.util.List;
 
 import at.yawk.dbus.protocol.DbusChannel;
 import at.yawk.dbus.protocol.DbusMessage;
+import at.yawk.dbus.protocol.HeaderField;
 import at.yawk.dbus.protocol.MessageConsumer;
 import at.yawk.dbus.protocol.MessageFactory;
 import at.yawk.dbus.protocol.MessageHeader;
+import at.yawk.dbus.protocol.MessageType;
 import at.yawk.dbus.protocol.object.ArrayObject;
 import at.yawk.dbus.protocol.object.BasicObject;
 import at.yawk.dbus.protocol.object.DbusObject;
+import at.yawk.dbus.protocol.object.ObjectPathObject;
+import at.yawk.dbus.protocol.object.StringObject;
 import at.yawk.dbus.protocol.object.StructObject;
 import at.yawk.dbus.protocol.type.ArrayTypeDefinition;
 import at.yawk.dbus.protocol.type.BasicType;
@@ -33,31 +37,39 @@ import lombok.RequiredArgsConstructor;
 
 @Keep
 @RequiredArgsConstructor
-public class FridaTask implements MessageConsumer,FridaApi {
+public class FridaTask implements MessageConsumer, FridaApi {
     public static final String TAG = "FridaTask";
     private DbusChannel channel;
-    private Channel<DbusMessage> mChannelDbusMessage = new Channel<>();
+    private Channel<DbusMessage> mChannelDbusMessage;
     private final String process;
     private final String script;
     private final Integer port;
     private OnFridaListener fridaTaskListener;
+    private String agentPath="";
+    private boolean stopped=false;
+
     @Override
     public void setFridaTaskListener(OnFridaListener fridaTaskListener) {
-        this.fridaTaskListener=fridaTaskListener;
+        this.fridaTaskListener = fridaTaskListener;
     }
 
     @Keep
     public void start() {
+        if(stopped){
+            Debug.LogE(TAG,"current seesion is stopped");
+            return;
+        }
+        if(channel!=null){
+            Debug.LogE(TAG,"channel is connected");
+            return;
+        }
         Go.go(() -> {
             try {
-                channel = new TcpDbusConnector().connectTcp(App.FRIDA_SERVER_IP,port==-1?App.FRIDA_SERVER_PORT:port);
+                channel = new TcpDbusConnector().connectTcp(App.FRIDA_SERVER_IP, port == -1 ? App.FRIDA_SERVER_PORT : port);
                 //设置回调监听
                 channel.setMessageConsumer(this);
                 //注入代码
                 inject(process, script);
-                if (fridaTaskListener != null) {
-                    fridaTaskListener.onStarted();
-                }
                 channel.closeStage().toCompletableFuture().get();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -72,6 +84,7 @@ public class FridaTask implements MessageConsumer,FridaApi {
 
     private void inject(String process, String script) {
         Go.go(() -> {
+            mChannelDbusMessage = new Channel<>();
             channel.write(MessageFactory.methodCall(
                     "/re/frida/HostSession",
                     "",
@@ -94,7 +107,7 @@ public class FridaTask implements MessageConsumer,FridaApi {
                             message = this.mChannelDbusMessage.take();
                             int sessionId = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
                             Debug.LogI(TAG, "sessionID:", sessionId);
-                            String agentPath = "/re/frida/AgentSession/" + sessionId;
+                            agentPath = "/re/frida/AgentSession/" + sessionId;
                             ArrayTypeDefinition type = new ArrayTypeDefinition(BasicType.BYTE);
                             List<DbusObject> values = new ArrayList<>();
 //                            values.add(BasicObject.createByte((byte)0));
@@ -128,6 +141,23 @@ public class FridaTask implements MessageConsumer,FridaApi {
                                     "LoadScript", StructObject.create(new StructTypeDefinition(Arrays.asList(BasicType.UINT32)), Arrays.asList(BasicObject.createUint32(scriptID)))));
                             message = this.mChannelDbusMessage.take();
                             Debug.LogI(TAG, "LoadScript message:", message);
+                            if (fridaTaskListener != null) {
+                                fridaTaskListener.onStarted();
+                            }
+                            do {
+                                message = this.mChannelDbusMessage.take();
+                                Debug.LogI(TAG, "while message:", message);
+                                if(message.getHeader().getMessageType()== MessageType.SIGNAL&&
+                                        TextUtils.equals(((StringObject)message.getHeader().getHeaderFields().get(HeaderField.MEMBER)).stringValue(),"MessageFromScript")){
+                                    String msg= message.getBody() != null ? message.getBody().getArguments().get(1).stringValue() :"";
+                                    if(!TextUtils.isEmpty(msg)){
+                                        if(fridaTaskListener!=null){
+                                            fridaTaskListener.onMessage(msg);
+                                        }
+                                    }
+                                }
+                            }
+                            while (!stopped);
                             return;
                         }
                     }
@@ -140,8 +170,11 @@ public class FridaTask implements MessageConsumer,FridaApi {
     @Keep
     public void stop() {
         Go.go(() -> {
+            stopped=true;
             if (channel != null) {
                 channel.disconnect();
+                channel=null;
+                agentPath=null;
             }
             Debug.LogI(TAG, "stop...");
         });
@@ -150,13 +183,31 @@ public class FridaTask implements MessageConsumer,FridaApi {
 
     @Override
     public boolean requireAccept(MessageHeader header) {
+        if(TextUtils.isEmpty(agentPath)){
+            return true;
+        }
+        if(header==null){
+            return false;
+        }
+        DbusObject dbusObject = header.getHeaderFields().get(HeaderField.PATH);
+        if(dbusObject instanceof ObjectPathObject){
+           String path= ((ObjectPathObject)dbusObject).stringValue();
+           if(!TextUtils.equals(path,agentPath)){
+               return false;
+           }
+        }
         return true;
     }
 
     @Override
     public void accept(DbusMessage message) {
+        if(message==null){
+            return;
+        }
         Debug.LogI(TAG, "accept:", message.getHeader().getSerial());
-        this.mChannelDbusMessage.put(message);
+        if (mChannelDbusMessage!=null){
+            this.mChannelDbusMessage.put(message);
+        }
         Debug.LogI(TAG, "accept:done:", message.getHeader().getSerial());
     }
 
