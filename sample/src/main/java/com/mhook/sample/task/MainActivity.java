@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void go(View view) {
+        findViewById(R.id.js_tips).setVisibility(View.GONE);
         Button button=(Button)view;
         boolean started = button.getTag() != null && (boolean) button.getTag();
         if(started){
