@@ -6,11 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="@dimen/bullet_gap_width"
-<<<<<<< HEAD
     tools:context=".task.MainActivity">
-=======
-    tools:context=".MainActivity">
->>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
 
     <Button
         android:layout_width="match_parent"
@@ -22,7 +18,6 @@
         android:text="@string/summany"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-<<<<<<< HEAD
     <ImageView
         android:src="@drawable/js_demo"
         android:layout_width="match_parent"
@@ -33,10 +28,4 @@
         android:layout_height="match_parent"
         android:scrollbars="vertical"
         android:fadeScrollbars="false"/>
-=======
-    <io.github.kbiakov.codeview.CodeView
-        android:id="@+id/code_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
->>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
 </LinearLayout>

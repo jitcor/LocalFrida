@@ -17,11 +17,7 @@ import java.io.InputStreamReader;
  * Created by ASUS on 2020/7/29.
  */
 
-<<<<<<< HEAD:sample/src/main/java/com/mhook/sample/tool/MyFile.java
 public class MyFile {
-=======
-public class FileTool {
->>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8:sample/src/main/java/com/mhook/sample/tool/FileTool.java
     public static String readLine(File file){
         try {
             InputStreamReader reader=new InputStreamReader(new FileInputStream(file));

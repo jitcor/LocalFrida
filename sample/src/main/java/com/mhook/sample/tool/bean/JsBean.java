@@ -16,7 +16,6 @@ import java.util.List;
 public class JsBean {
     private final String process;
     private final String js;
-<<<<<<< HEAD
     private final String jsFileName;
 
     public JsBean(String process, String js, String jsFileName) {
@@ -27,12 +26,6 @@ public class JsBean {
 
     public String getJsFileName() {
         return jsFileName;
-=======
-
-    public JsBean(String process, String js) {
-        this.process = process;
-        this.js = js;
->>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
     }
 
     public String getProcess() {
@@ -57,11 +50,7 @@ public class JsBean {
                             for (int i=1;i<readLines.size();i++){
                                 jsBuffer.append(readLines.get(i)).append("\n");
                             }
-<<<<<<< HEAD
                             jsBeans.add(new JsBean(process,jsBuffer.toString(), file.getName()));
-=======
-                            jsBeans.add(new JsBean(process,jsBuffer.toString()));
->>>>>>> 68eed3e42872565ebfb459cc70abcffacdf5d7f8
                         }
                     }
 
