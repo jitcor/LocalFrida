@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,7 +25,6 @@ import com.nabinbhandari.android.permissions.Permissions;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,11 +73,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void go(View view) {
-        Go.go(() -> {
+        Button button=(Button)view;
+        boolean started = button.getTag() != null && (boolean) button.getTag();
+        if(started){
+            button.setTag(false);
+            button.setText("注入");
             for (FridaTaskWrapper wrapper:fridaTaskWrapperList){
                 wrapper.stop();
             }
             fridaTaskWrapperList.clear();
+            return;
+        }
+        button.setEnabled(false);
+        Go.go(() -> {
             Debug.LogI(TAG, "getCpuType...");
             String fridaServerName;
             switch (MyBuild.getCpuType()) {
@@ -95,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
             }
             Debug.LogI(TAG, "getCpuType...", fridaServerName);
-            String targetPath = getFilesDir().getAbsolutePath() + "/" + fridaServerName;
+            String targetPath =App.FRIDA_JS_PATH + "/" + fridaServerName;
             if (!MyFile.copyToFiles(this, fridaServerName, targetPath)) {
                 Debug.LogE(TAG, "error FileTool.copyToFiles");
                 return;
@@ -106,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
             }
             Shell.execCommandNoWait(
                     new String[]{
-                            StringUtils.join("cd ", getFilesDir().getAbsolutePath()),
+                            StringUtils.join("cd ", App.FRIDA_JS_PATH),
                             StringUtils.join("chmod 777 ", fridaServerName),
                             StringUtils.join("./", fridaServerName, " -D -l 127.0.0.1:", App.FRIDA_SERVER_PORT)
                     },
@@ -136,6 +144,11 @@ public class MainActivity extends AppCompatActivity {
                 }).start());
 
             }
+            runOnUiThread(()->{
+                button.setEnabled(true);
+                button.setTag(true);
+                button.setText("停止");
+            });
 
         });
 
@@ -151,5 +164,12 @@ public class MainActivity extends AppCompatActivity {
                 message.scrollTo(0,offset-message.getHeight());
             }
         });
+    }
+
+    public void stop(View view) {
+        for (FridaTaskWrapper wrapper:fridaTaskWrapperList){
+            wrapper.stop();
+        }
+        fridaTaskWrapperList.clear();
     }
 }

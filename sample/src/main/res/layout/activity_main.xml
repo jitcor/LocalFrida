@@ -7,13 +7,18 @@
     android:orientation="vertical"
     android:padding="@dimen/bullet_gap_width"
     tools:context=".task.MainActivity">
-
+<LinearLayout
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="注入"
         android:onClick="go"
         android:clickable="true"/>
+</LinearLayout>
+
     <TextView
         android:text="@string/summany"
         android:layout_width="match_parent"
