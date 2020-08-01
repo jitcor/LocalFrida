@@ -11,14 +11,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mhook.sample.R;
+import com.mhook.sample.tool.Frida;
 import com.mhook.sample.tool.FridaTaskWrapper;
 import com.mhook.sample.tool.App;
-import com.mhook.sample.tool.MyBuild;
 import com.mhook.sample.tool.Debug;
-import com.mhook.sample.tool.MyFile;
-import com.mhook.sample.tool.Shell;
+import com.mhook.sample.tool.common.Shell;
 import com.mhook.sample.tool.bean.JsBean;
-import com.mhook.sample.tool.go.Go;
+import com.mhook.sample.tool.common.go.Go;
+import com.mhook.sample.tool.common.go.Result;
 import com.nabinbhandari.android.permissions.PermissionHandler;
 import com.nabinbhandari.android.permissions.Permissions;
 
@@ -29,11 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-
 public class MainActivity extends AppCompatActivity {
     public static final String TAG = "MainActivity";
     public TextView message;
-    private List<FridaTaskWrapper> fridaTaskWrapperList=new ArrayList<>();
+    private List<FridaTaskWrapper> fridaTaskWrapperList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +52,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void message() {
-//        codeView = findViewById(R.id.code_view);
-//        codeView.setCode(MyFile.assetsText(this,"frida.js"), "js");
-        message=findViewById(R.id.message);
+        message = findViewById(R.id.message);
         message.setMovementMethod(ScrollingMovementMethod.getInstance());
     }
 
@@ -67,19 +64,24 @@ public class MainActivity extends AppCompatActivity {
     public static int test() {
         return 12345;
     }
+
     public static byte[] testSendBytes() {
 
-        return new byte[]{1,2,3,4};
+        return new byte[]{1, 2, 3, 4};
     }
 
     public void go(View view) {
+        if (!Shell.requestPermission()) {
+            Debug.LogE(TAG, "not root permission!!");
+            return;
+        }
         findViewById(R.id.js_tips).setVisibility(View.GONE);
-        Button button=(Button)view;
+        Button button = (Button) view;
         boolean started = button.getTag() != null && (boolean) button.getTag();
-        if(started){
+        if (started) {
             button.setTag(false);
             button.setText("注入");
-            for (FridaTaskWrapper wrapper:fridaTaskWrapperList){
+            for (FridaTaskWrapper wrapper : fridaTaskWrapperList) {
                 wrapper.stop();
             }
             fridaTaskWrapperList.clear();
@@ -87,68 +89,63 @@ public class MainActivity extends AppCompatActivity {
         }
         button.setEnabled(false);
         Go.go(() -> {
-            Debug.LogI(TAG, "getCpuType...");
-            String fridaServerName;
-            switch (MyBuild.getCpuType()) {
-                case ARM:
-                    fridaServerName = "fs12116arm";
-                    break;
-                case ARM64:
-                    fridaServerName = "fs12116arm64";
-                    break;
-                case X86:
-                    fridaServerName = "fs12116x86";
-                    break;
-                default:
-                    Debug.LogE(TAG, "error BuildTool.getCpuType()");
+            if (!Frida.checkFridaServer()) {
+                Debug.LogI(TAG, "start frida-server.");
+                Result<String> result=Shell.execCommandNoWait(
+                        new String[]{
+                                StringUtils.join("cd ", getFilesDir().getAbsolutePath()),
+                                StringUtils.join("chmod 777 ", App.getFridaServerName()),
+                                StringUtils.join("./", App.getFridaServerName(), " -D -l 127.0.0.1:", App.FRIDA_SERVER_PORT)
+                        },
+                        true, true);
+                if(result.error()!=null){
+                    Debug.LogE(TAG,result.error().error());
                     return;
-            }
-            Debug.LogI(TAG, "getCpuType...", fridaServerName);
-            String targetPath =App.FRIDA_JS_PATH + "/" + fridaServerName;
-            if (!MyFile.copyToFiles(this, fridaServerName, targetPath)) {
-                Debug.LogE(TAG, "error FileTool.copyToFiles");
+                }
+                Debug.LogI(TAG,result.value());
                 return;
             }
-            if (!Shell.permission()) {
-                Debug.LogE(TAG, "not root permission!!");
-                return;
-            }
-            Shell.execCommandNoWait(
-                    new String[]{
-                            StringUtils.join("cd ", App.FRIDA_JS_PATH),
-                            StringUtils.join("chmod 777 ", fridaServerName),
-                            StringUtils.join("./", fridaServerName, " -D -l 127.0.0.1:", App.FRIDA_SERVER_PORT)
-                    },
-                    true, false);
+
             Debug.LogI(TAG, "start frida task...");
             List<JsBean> jsBeanList = JsBean.parse(new File(App.FRIDA_JS_PATH));
-            for (JsBean jsBean:jsBeanList){
-              fridaTaskWrapperList.add(new FridaTaskWrapper(this, jsBean.getProcess(),
+            for (JsBean jsBean : jsBeanList) {
+                fridaTaskWrapperList.add(new FridaTaskWrapper(this, jsBean.getProcess(),
                         jsBean.getJs(), App.FRIDA_SERVER_PORT).setFridaTaskListener(new FridaTaskWrapper.OnFridaTaskListener() {
                     @Override
                     public void onStarted() {
-                        sendMessage(jsBean.getJsFileName(),":已注入",jsBean.getProcess(),"\n");
-                        if(jsBean.getProcess().equals(getPackageName())){
-                            Debug.LogI(TAG,"Test:",test());
+                        sendMessage(jsBean.getJsFileName(), ":Injected:", jsBean.getProcess(), "\n");
+                        if (jsBean.getProcess().equals(getPackageName())) {
+                            Debug.LogI(TAG, "Test:", test());
                         }
                     }
 
                     @Override
                     public void onMessage(String msg) {
-                        sendMessage(jsBean.getJsFileName(),":",msg,"\n");
+                        sendMessage(jsBean.getJsFileName(), ":", msg);
+                    }
+
+                    @Override
+                    public void onError(String err) {
+                        sendMessage(jsBean.getJsFileName(), ":", err);
                     }
 
                     @Override
                     public void onStopped() {
-                        sendMessage(jsBean.getJsFileName(),":已停止",jsBean.getProcess(),"\n");
+                        sendMessage(jsBean.getJsFileName(), ":stopped:", jsBean.getProcess(), "\n");
+                        runOnUiThread(() -> {
+                            button.setEnabled(true);
+                            button.setTag(false);
+                            button.setText("注入");
+                        });
                     }
                 }).start());
 
             }
-            runOnUiThread(()->{
+            runOnUiThread(() -> {
                 button.setEnabled(true);
                 button.setTag(true);
                 button.setText("停止");
+                message.setText("");
             });
 
         });
@@ -156,19 +153,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendMessage(String... messages) {
-        runOnUiThread(()->{
-            for (String msg:messages){
+        runOnUiThread(() -> {
+            for (String msg : messages) {
                 message.append(msg);
             }
-            int offset=message.getLineCount()*message.getLineHeight();
-            if(offset>message.getHeight()){
-                message.scrollTo(0,offset-message.getHeight());
+            message.append("\n");
+            int offset = message.getLineCount() * message.getLineHeight();
+            if (offset > message.getHeight()) {
+                message.scrollTo(0, offset - message.getHeight());
             }
         });
     }
 
     public void stop(View view) {
-        for (FridaTaskWrapper wrapper:fridaTaskWrapperList){
+        for (FridaTaskWrapper wrapper : fridaTaskWrapperList) {
             wrapper.stop();
         }
         fridaTaskWrapperList.clear();

@@ -6,10 +6,14 @@
 
 package at.yawk.dbus.protocol;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import at.yawk.dbus.protocol.auth.AuthClient;
 import at.yawk.dbus.protocol.auth.mechanism.AuthMechanism;
 import at.yawk.dbus.protocol.auth.mechanism.ExternalAuthMechanism;
 import at.yawk.dbus.protocol.codec.DbusMainProtocol;
+import at.yawk.dbus.protocol.object.DbusObject;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -29,13 +33,15 @@ import java.util.Properties;
 import java9.util.concurrent.CompletionStage;
 
 import lombok.Setter;
+import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author yawkat
  */
-@Slf4j
 public class DbusConnector {
+    private final Logger log = LoggerFactory.getLogger(DbusConnector.class);
     private final Bootstrap bootstrap;
     /**
      * The consumer to use for initial messages.

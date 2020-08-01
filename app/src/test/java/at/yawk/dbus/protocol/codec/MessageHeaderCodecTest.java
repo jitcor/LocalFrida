@@ -17,8 +17,12 @@ import at.yawk.dbus.protocol.object.BasicObject;
 import at.yawk.dbus.protocol.object.DbusObject;
 import at.yawk.dbus.protocol.object.ObjectPathObject;
 import at.yawk.dbus.protocol.object.SignatureObject;
+import at.yawk.dbus.protocol.type.ArrayTypeDefinition;
 import at.yawk.dbus.protocol.type.BasicType;
+import at.yawk.dbus.protocol.type.MalformedTypeDefinitionException;
+import at.yawk.dbus.protocol.type.StructTypeDefinition;
 import at.yawk.dbus.protocol.type.TypeDefinition;
+import at.yawk.dbus.protocol.type.TypeParser;
 import cx.ath.matthew.utils.Hexdump;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -28,6 +32,31 @@ import io.netty.handler.codec.DecoderException;
  * Created by ASUS on 2020/7/25.
  */
 public class MessageHeaderCodecTest {
+    @Test
+    public void parseTypeDefinitionTest() throws MalformedTypeDefinitionException {
+        TypeDefinition typeDefinition = TypeParser.parseTypeDefinition("(basbasbassiay)");
+        Assert.assertNotNull(typeDefinition);
+        StructTypeDefinition SpawnArg1Type = new StructTypeDefinition(
+                Arrays.asList(
+                        BasicType.BOOLEAN,
+                        new ArrayTypeDefinition(BasicType.STRING),
+                        BasicType.BOOLEAN,
+                        new ArrayTypeDefinition(BasicType.STRING),
+                        BasicType.BOOLEAN,
+                        new ArrayTypeDefinition(BasicType.STRING),
+                        BasicType.STRING,
+                        BasicType.INT32,
+                        new ArrayTypeDefinition(BasicType.BYTE)
+                ));
+        Assert.assertNotNull(SpawnArg1Type);
+    }
+
+    @Test
+    public void parseTypeSignatureTest() throws MalformedTypeDefinitionException {
+        BasicObject basicObject = TypeParser.parseTypeSignature("(basbasbassiay)");
+        Assert.assertNotNull(basicObject);
+    }
+
     @Test
     public void testMessageDecoer() throws Exception {
         ByteBuf buffer = Unpooled.buffer();
@@ -60,15 +89,17 @@ public class MessageHeaderCodecTest {
         MessageHeaderCodec decoder = new MessageHeaderCodec();
         List<Object> out = new ArrayList<>();
         decoder.decode(null, buffer, out);
-        Assert.assertEquals(out.size(),1);
+        Assert.assertEquals(out.size(), 1);
 
-        MessageHeader messageHeader= (MessageHeader) out.get(0);
+        MessageHeader messageHeader = (MessageHeader) out.get(0);
 
-        ByteBuf byteBuf=buffer.slice().order(messageHeader.getByteOrder());
+        ByteBuf byteBuf = buffer.slice().order(messageHeader.getByteOrder());
         AlignableByteBuf decoding = AlignableByteBuf.decoding(byteBuf);
 
         DbusObject signature = messageHeader.getHeaderFields().get(HeaderField.SIGNATURE);
-        if (signature == null) { throw new DecoderException("Non-empty body but missing signature header"); }
+        if (signature == null) {
+            throw new DecoderException("Non-empty body but missing signature header");
+        }
 
         List<TypeDefinition> types = signature.typeValue();
         List<DbusObject> bodyObjects = new ArrayList<>();
@@ -82,35 +113,41 @@ public class MessageHeaderCodecTest {
         body.setArguments(bodyObjects);
         out.add(body);
 
-        Assert.assertEquals(out.size(),2);
+        Assert.assertEquals(out.size(), 2);
     }
+
     @Test
     public void testMessageDecoer1() throws Exception {
         ByteBuf buffer = Unpooled.buffer();
         buffer.writeBytes(new byte[]{
-                0x6C, 0x01, 0x00, 0x01, 0x04, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x6B, 0x00, 0x00, 0x00,
-                0x01, 0x01, 0x6F, 0x00, 0x19, 0x00, 0x00, 0x00, 0x2F, 0x72, 0x65, 0x2F, 0x66, 0x72, 0x69, 0x64,
-                0x61, 0x2F, 0x41, 0x67, 0x65, 0x6E, 0x74, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6F, 0x6E, 0x2F, 0x32,
-                0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x73, 0x00, 0x17, 0x00, 0x00, 0x00,
-                0x72, 0x65, 0x2E, 0x66, 0x72, 0x69, 0x64, 0x61, 0x2E, 0x41, 0x67, 0x65, 0x6E, 0x74, 0x53, 0x65,
-                0x73, 0x73, 0x69, 0x6F, 0x6E, 0x31, 0x32, 0x00, 0x08, 0x01, 0x67, 0x00, 0x03, 0x28, 0x75, 0x29,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x01, 0x73, 0x00, 0x0A, 0x00, 0x00, 0x00,
-                0x4C, 0x6F, 0x61, 0x64, 0x53, 0x63, 0x72, 0x69, 0x70, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00,
+                0x6C, 0x01, 0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x66, 0x00, 0x00, 0x00,
+                0x01, 0x01, 0x6F, 0x00, 0x15, 0x00, 0x00, 0x00, 0x2F, 0x72, 0x65, 0x2F, 0x66, 0x72, 0x69, 0x64,
+                0x61, 0x2F, 0x48, 0x6F, 0x73, 0x74, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6F, 0x6E, 0x00, 0x00, 0x00,
+                0x02, 0x01, 0x73, 0x00, 0x16, 0x00, 0x00, 0x00, 0x72, 0x65, 0x2E, 0x66, 0x72, 0x69, 0x64, 0x61,
+                0x2E, 0x48, 0x6F, 0x73, 0x74, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6F, 0x6E, 0x31, 0x32, 0x00, 0x00,
+                0x08, 0x01, 0x67, 0x00, 0x10, 0x73, 0x28, 0x62, 0x61, 0x73, 0x62, 0x61, 0x73, 0x62, 0x61, 0x73,
+                0x73, 0x69, 0x61, 0x79, 0x29, 0x00, 0x00, 0x00, 0x03, 0x01, 0x73, 0x00, 0x05, 0x00, 0x00, 0x00,
+                0x53, 0x70, 0x61, 0x77, 0x6E, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x63, 0x6F, 0x6D, 0x2E,
+                0x6D, 0x68, 0x6F, 0x6F, 0x6B, 0x2E, 0x73, 0x61, 0x6D, 0x70, 0x6C, 0x65, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         });
 
         MessageHeaderCodec decoder = new MessageHeaderCodec();
         List<Object> out = new ArrayList<>();
         decoder.decode(null, buffer, out);
-        Assert.assertEquals(out.size(),1);
+        Assert.assertEquals(out.size(), 1);
 
-        MessageHeader messageHeader= (MessageHeader) out.get(0);
+        MessageHeader messageHeader = (MessageHeader) out.get(0);
 
-        ByteBuf byteBuf=buffer.slice().order(messageHeader.getByteOrder());
+        ByteBuf byteBuf = buffer.slice().order(messageHeader.getByteOrder());
         AlignableByteBuf decoding = AlignableByteBuf.decoding(byteBuf);
 
         DbusObject signature = messageHeader.getHeaderFields().get(HeaderField.SIGNATURE);
-        if (signature == null) { throw new DecoderException("Non-empty body but missing signature header"); }
+        if (signature == null) {
+            throw new DecoderException("Non-empty body but missing signature header");
+        }
 
         List<TypeDefinition> types = signature.typeValue();
         List<DbusObject> bodyObjects = new ArrayList<>();
@@ -124,7 +161,7 @@ public class MessageHeaderCodecTest {
         body.setArguments(bodyObjects);
         out.add(body);
 
-        Assert.assertEquals(out.size(),2);
+        Assert.assertEquals(out.size(), 2);
     }
 
     @Test

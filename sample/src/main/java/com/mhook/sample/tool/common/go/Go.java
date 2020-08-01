@@ -1,4 +1,4 @@
-package com.mhook.sample.tool.go;
+package com.mhook.sample.tool.common.go;
 
 /**
  * Created by ASUS on 2020/7/25.

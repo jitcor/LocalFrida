@@ -1,4 +1,4 @@
-package com.mhook.sample.tool;
+package com.mhook.sample.tool.common;
 
 import android.os.Build;
 import android.text.TextUtils;
@@ -7,7 +7,7 @@ import android.text.TextUtils;
  * Created by ASUS on 2020/7/29.
  */
 
-public class MyBuild {
+public class Builds {
     public enum CpuType {
         ARM, ARM64, X86,UNKNOWN
     }

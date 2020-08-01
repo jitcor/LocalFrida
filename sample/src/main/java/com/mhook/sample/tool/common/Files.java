@@ -1,4 +1,4 @@
-package com.mhook.sample.tool;
+package com.mhook.sample.tool.common;
 
 import android.content.Context;
 
@@ -17,7 +17,7 @@ import java.io.InputStreamReader;
  * Created by ASUS on 2020/7/29.
  */
 
-public class MyFile {
+public class Files {
     public static String readLine(File file){
         try {
             InputStreamReader reader=new InputStreamReader(new FileInputStream(file));

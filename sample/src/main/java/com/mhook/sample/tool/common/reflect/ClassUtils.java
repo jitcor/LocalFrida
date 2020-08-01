@@ -1,4 +1,4 @@
-package com.mhook.sample.tool.reflect;
+package com.mhook.sample.tool.common.reflect;
 
 import java.lang.reflect.Array;
 import java.util.Collections;

@@ -8,9 +8,12 @@ import com.mhook.libfridaapi.FridaApi;
 import com.mhook.libfridaapi.OnFridaListener;
 import com.mhook.localfrida.tool.Debug;
 import com.mhook.localfrida.tool.app.App;
+import com.mhook.localfrida.tool.dbus.DbusObjectEx;
+import com.mhook.localfrida.tool.dbus.DbusTypeDef;
 import com.mhook.localfrida.tool.go.Channel;
 import com.mhook.localfrida.tool.go.Go;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +35,8 @@ import at.yawk.dbus.protocol.type.ArrayTypeDefinition;
 import at.yawk.dbus.protocol.type.BasicType;
 import at.yawk.dbus.protocol.type.StructTypeDefinition;
 import at.yawk.dbus.protocol.type.TypeDefinition;
+import at.yawk.dbus.protocol.type.TypeParser;
+import javas.util.Arrays_;
 import lombok.RequiredArgsConstructor;
 
 
@@ -44,9 +49,10 @@ public class FridaTask implements MessageConsumer, FridaApi {
     private final String process;
     private final String script;
     private final Integer port;
+    private final Boolean isReboot;
     private OnFridaListener fridaTaskListener;
-    private String agentPath="";
-    private boolean stopped=false;
+    private String agentPath = "";
+    private boolean stopped = false;
 
     @Override
     public void setFridaTaskListener(OnFridaListener fridaTaskListener) {
@@ -55,12 +61,12 @@ public class FridaTask implements MessageConsumer, FridaApi {
 
     @Keep
     public void start() {
-        if(stopped){
-            Debug.LogE(TAG,"current seesion is stopped");
+        if (stopped) {
+            Debug.LogE(TAG, "current seesion is stopped");
             return;
         }
-        if(channel!=null){
-            Debug.LogE(TAG,"channel is connected");
+        if (channel != null) {
+            Debug.LogE(TAG, "channel is connected");
             return;
         }
         Go.go(() -> {
@@ -69,7 +75,12 @@ public class FridaTask implements MessageConsumer, FridaApi {
                 //设置回调监听
                 channel.setMessageConsumer(this);
                 //注入代码
-                inject(process, script);
+                if (isReboot) {
+                    rebootAndInject(process, script);
+                } else {
+                    inject(process, script);
+                }
+
                 channel.closeStage().toCompletableFuture().get();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -82,86 +93,215 @@ public class FridaTask implements MessageConsumer, FridaApi {
         });
     }
 
-    private void inject(String process, String script) {
+    private void rebootAndInject(String process, String script) {
         Go.go(() -> {
-            mChannelDbusMessage = new Channel<>();
-            channel.write(MessageFactory.methodCall(
-                    "/re/frida/HostSession",
-                    "",
-                    "re.frida.HostSession12",
-                    "EnumerateProcesses"));
-            DbusMessage message = this.mChannelDbusMessage.take();
-            if (message.getBody() != null && message.getBody().getArguments() != null && message.getBody().getArguments().get(0) != null) {
-                for (DbusObject dbusObject : message.getBody().getArguments().get(0).getValues()) {
-                    if (dbusObject != null) {
+            try {
+                mChannelDbusMessage = new Channel<>();
+                channel.write(MessageFactory.methodCall(
+                        "/re/frida/HostSession",
+                        "",
+                        "re.frida.HostSession12",
+                        "Spawn",
+                        BasicObject.createString(process),
+                        StructObject.create(
+                                (StructTypeDefinition) TypeParser.parseTypeDefinition("(basbasbassiay)"),
+                                Arrays.asList(
+                                        BasicObject.createBoolean(false),
+                                        DbusObjectEx.createEmptyArray(String.class),
+                                        BasicObject.createBoolean(false),
+                                        DbusObjectEx.createEmptyArray(String.class),
+                                        BasicObject.createBoolean(false),
+                                        DbusObjectEx.createEmptyArray(String.class),
+                                        BasicObject.createString(""),
+                                        BasicObject.createInt32(0),
+                                        DbusObjectEx.createEmptyArray(Byte.class)
+                                ))
+
+                ));
+                DbusMessage message = this.mChannelDbusMessage.take();
+                if (message.getBody() != null && message.getBody().getArguments() != null && message.getBody().getArguments().get(0) != null) {
+                    for (DbusObject dbusObject : message.getBody().getArguments().get(0).getValues()) {
+                        if (dbusObject == null) {
+                            continue;
+                        }
                         int pid = dbusObject.get(0).intValue();
                         String packageName = dbusObject.get(1).stringValue();
-                        Debug.LogI(TAG, String.format("pid:%s--process:%s", pid, packageName));
-                        if (TextUtils.equals(packageName, process)) {
-                            channel.write(MessageFactory.methodCall(
-                                    "/re/frida/HostSession",
-                                    "",
-                                    "re.frida.HostSession12",
-                                    "AttachTo",
-                                    BasicObject.createUint32(pid)));
-                            message = this.mChannelDbusMessage.take();
-                            int sessionId = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
-                            Debug.LogI(TAG, "sessionID:", sessionId);
-                            agentPath = "/re/frida/AgentSession/" + sessionId;
-                            ArrayTypeDefinition type = new ArrayTypeDefinition(BasicType.BYTE);
-                            List<DbusObject> values = new ArrayList<>();
+//                        Debug.LogI(TAG, String.format("pid:%s--process:%s", pid, packageName));
+                        if (!TextUtils.equals(packageName, process)) {
+                            continue;
+                        }
+                        channel.write(MessageFactory.methodCall(
+                                "/re/frida/HostSession",
+                                "",
+                                "re.frida.HostSession12",
+                                "AttachTo",
+                                BasicObject.createUint32(pid)));
+                        message = this.mChannelDbusMessage.take();
+                        int sessionId = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
+                        Debug.LogI(TAG, "sessionID:", sessionId);
+                        agentPath = "/re/frida/AgentSession/" + sessionId;
+                        ArrayTypeDefinition type = new ArrayTypeDefinition(BasicType.BYTE);
+                        List<DbusObject> values = new ArrayList<>();
 //                            values.add(BasicObject.createByte((byte)0));
-                            ArrayObject arrayObj = ArrayObject.create(type, values);
+                        ArrayObject arrayObj = ArrayObject.create(type, values);
 
-                            List<TypeDefinition> types = new ArrayList<>();
-                            types.add(new ArrayTypeDefinition(BasicType.BYTE));
-                            StructTypeDefinition type2 = new StructTypeDefinition(types);
-                            List<DbusObject> values2 = new ArrayList<>();
-                            values2.add(arrayObj);
-                            channel.write(
-                                    MessageFactory.methodCall(
-                                            agentPath,
-                                            "",
-                                            "re.frida.AgentSession12",
-                                            "CreateScriptWithOptions",
-                                            BasicObject.createString(script),
+                        List<TypeDefinition> types = new ArrayList<>();
+                        types.add(new ArrayTypeDefinition(BasicType.BYTE));
+                        StructTypeDefinition type2 = new StructTypeDefinition(types);
+                        List<DbusObject> values2 = new ArrayList<>();
+                        values2.add(arrayObj);
+                        channel.write(
+                                MessageFactory.methodCall(
+                                        agentPath,
+                                        "",
+                                        "re.frida.AgentSession12",
+                                        "CreateScriptWithOptions",
+                                        BasicObject.createString(script),
 //                                            BasicObject.createString("")
-                                            StructObject.create(type2, values2)
+                                        StructObject.create(type2, values2)
 
-                                    )
-                            );
+                                )
+                        );
+                        message = this.mChannelDbusMessage.take();
+                        int scriptID = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
+                        Debug.LogI(TAG, "scriptID:", scriptID);
+                        Debug.LogI(TAG, "CreateScript message:", message);
+                        channel.write(MessageFactory.methodCall(
+                                agentPath,
+                                "",
+                                "re.frida.AgentSession12",
+                                "LoadScript", StructObject.create(new StructTypeDefinition(Arrays.asList(BasicType.UINT32)), Arrays.asList(BasicObject.createUint32(scriptID)))));
+                        message = this.mChannelDbusMessage.take();
+                        Debug.LogI(TAG, "LoadScript message:", message);
+                        if (fridaTaskListener != null) {
+                            fridaTaskListener.onStarted();
+                        }
+                        do {
                             message = this.mChannelDbusMessage.take();
-                            int scriptID = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
-                            Debug.LogI(TAG, "scriptID:", scriptID);
-                            Debug.LogI(TAG, "CreateScript message:", message);
-                            channel.write(MessageFactory.methodCall(
-                                    agentPath,
-                                    "",
-                                    "re.frida.AgentSession12",
-                                    "LoadScript", StructObject.create(new StructTypeDefinition(Arrays.asList(BasicType.UINT32)), Arrays.asList(BasicObject.createUint32(scriptID)))));
-                            message = this.mChannelDbusMessage.take();
-                            Debug.LogI(TAG, "LoadScript message:", message);
-                            if (fridaTaskListener != null) {
-                                fridaTaskListener.onStarted();
-                            }
-                            do {
-                                message = this.mChannelDbusMessage.take();
-                                Debug.LogI(TAG, "while message:", message);
-                                if(message.getHeader().getMessageType()== MessageType.SIGNAL&&
-                                        TextUtils.equals(((StringObject)message.getHeader().getHeaderFields().get(HeaderField.MEMBER)).stringValue(),"MessageFromScript")){
-                                    String msg= message.getBody() != null ? message.getBody().getArguments().get(1).stringValue() :"";
-                                    if(!TextUtils.isEmpty(msg)){
-                                        if(fridaTaskListener!=null){
-                                            fridaTaskListener.onMessage(msg);
-                                        }
+                            Debug.LogI(TAG, "while message:", message);
+                            if (message.getHeader().getMessageType() == MessageType.SIGNAL &&
+                                    TextUtils.equals(((StringObject) message.getHeader().getHeaderFields().get(HeaderField.MEMBER)).stringValue(), "MessageFromScript")) {
+                                String msg = message.getBody() != null ? message.getBody().getArguments().get(1).stringValue() : "";
+                                if (!TextUtils.isEmpty(msg)) {
+                                    if (fridaTaskListener != null) {
+                                        fridaTaskListener.onMessage(msg);
                                     }
                                 }
                             }
-                            while (!stopped);
-                            return;
                         }
+                        while (!stopped);
+                        return;
                     }
+                    if (fridaTaskListener != null) {
+                        fridaTaskListener.onError("not found process:" + process);
+                    }
+                    stop();
                 }
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                if (fridaTaskListener != null) {
+                    fridaTaskListener.onError(throwable.getMessage());
+                }
+                stop();
+            }
+        });
+
+    }
+
+    private void inject(String process, String script) {
+        Go.go(() -> {
+            try {
+                mChannelDbusMessage = new Channel<>();
+                channel.write(MessageFactory.methodCall(
+                        "/re/frida/HostSession",
+                        "",
+                        "re.frida.HostSession12",
+                        "EnumerateProcesses"));
+                DbusMessage message = this.mChannelDbusMessage.take();
+                if (message.getBody() != null && message.getBody().getArguments() != null && message.getBody().getArguments().get(0) != null) {
+                    for (DbusObject dbusObject : message.getBody().getArguments().get(0).getValues()) {
+                        if (dbusObject == null) {
+                            continue;
+                        }
+                        int pid = dbusObject.get(0).intValue();
+                        String packageName = dbusObject.get(1).stringValue();
+//                        Debug.LogI(TAG, String.format("pid:%s--process:%s", pid, packageName));
+                        if (!TextUtils.equals(packageName, process)) {
+                            continue;
+                        }
+                        channel.write(MessageFactory.methodCall(
+                                "/re/frida/HostSession",
+                                "",
+                                "re.frida.HostSession12",
+                                "AttachTo",
+                                BasicObject.createUint32(pid)));
+                        message = this.mChannelDbusMessage.take();
+                        int sessionId = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
+                        Debug.LogI(TAG, "sessionID:", sessionId);
+                        agentPath = "/re/frida/AgentSession/" + sessionId;
+                        ArrayTypeDefinition type = new ArrayTypeDefinition(BasicType.BYTE);
+                        List<DbusObject> values = new ArrayList<>();
+//                            values.add(BasicObject.createByte((byte)0));
+                        ArrayObject arrayObj = ArrayObject.create(type, values);
+
+                        List<TypeDefinition> types = new ArrayList<>();
+                        types.add(new ArrayTypeDefinition(BasicType.BYTE));
+                        StructTypeDefinition type2 = new StructTypeDefinition(types);
+                        List<DbusObject> values2 = new ArrayList<>();
+                        values2.add(arrayObj);
+                        channel.write(
+                                MessageFactory.methodCall(
+                                        agentPath,
+                                        "",
+                                        "re.frida.AgentSession12",
+                                        "CreateScriptWithOptions",
+                                        BasicObject.createString(script),
+//                                            BasicObject.createString("")
+                                        StructObject.create(type2, values2)
+
+                                )
+                        );
+                        message = this.mChannelDbusMessage.take();
+                        int scriptID = message.getBody() != null ? message.getBody().getArguments().get(0).get(0).intValue() : 0;
+                        Debug.LogI(TAG, "scriptID:", scriptID);
+                        Debug.LogI(TAG, "CreateScript message:", message);
+                        channel.write(MessageFactory.methodCall(
+                                agentPath,
+                                "",
+                                "re.frida.AgentSession12",
+                                "LoadScript", StructObject.create(new StructTypeDefinition(Arrays.asList(BasicType.UINT32)), Arrays.asList(BasicObject.createUint32(scriptID)))));
+                        message = this.mChannelDbusMessage.take();
+                        Debug.LogI(TAG, "LoadScript message:", message);
+                        if (fridaTaskListener != null) {
+                            fridaTaskListener.onStarted();
+                        }
+                        do {
+                            message = this.mChannelDbusMessage.take();
+                            Debug.LogI(TAG, "while message:", message);
+                            if (message.getHeader().getMessageType() == MessageType.SIGNAL &&
+                                    TextUtils.equals(((StringObject) message.getHeader().getHeaderFields().get(HeaderField.MEMBER)).stringValue(), "MessageFromScript")) {
+                                String msg = message.getBody() != null ? message.getBody().getArguments().get(1).stringValue() : "";
+                                if (!TextUtils.isEmpty(msg)) {
+                                    if (fridaTaskListener != null) {
+                                        fridaTaskListener.onMessage(msg);
+                                    }
+                                }
+                            }
+                        }
+                        while (!stopped);
+                        return;
+                    }
+                    if (fridaTaskListener != null) {
+                        fridaTaskListener.onError("not found process:" + process);
+                    }
+                    stop();
+                }
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                if (fridaTaskListener != null) {
+                    fridaTaskListener.onError(throwable.getMessage());
+                }
+                stop();
             }
         });
 
@@ -170,11 +310,11 @@ public class FridaTask implements MessageConsumer, FridaApi {
     @Keep
     public void stop() {
         Go.go(() -> {
-            stopped=true;
+            stopped = true;
             if (channel != null) {
                 channel.disconnect();
-                channel=null;
-                agentPath=null;
+                channel = null;
+                agentPath = null;
             }
             Debug.LogI(TAG, "stop...");
         });
@@ -183,32 +323,31 @@ public class FridaTask implements MessageConsumer, FridaApi {
 
     @Override
     public boolean requireAccept(MessageHeader header) {
-        if(TextUtils.isEmpty(agentPath)){
+        if (TextUtils.isEmpty(agentPath)) {
             return true;
         }
-        if(header==null){
+        if (header == null) {
             return false;
         }
         DbusObject dbusObject = header.getHeaderFields().get(HeaderField.PATH);
-        if(dbusObject instanceof ObjectPathObject){
-           String path= ((ObjectPathObject)dbusObject).stringValue();
-           if(!TextUtils.equals(path,agentPath)){
-               return false;
-           }
+        if (dbusObject instanceof ObjectPathObject) {
+            String path = ((ObjectPathObject) dbusObject).stringValue();
+            if (!TextUtils.equals(path, agentPath)) {
+                return false;
+            }
         }
         return true;
     }
 
     @Override
     public void accept(DbusMessage message) {
-        if(message==null){
+        if (message == null) {
             return;
         }
-        Debug.LogI(TAG, "accept:", message.getHeader().getSerial());
-        if (mChannelDbusMessage!=null){
+        Debug.LogI(TAG,"accept:",message);
+        if (mChannelDbusMessage != null) {
             this.mChannelDbusMessage.put(message);
         }
-        Debug.LogI(TAG, "accept:done:", message.getHeader().getSerial());
     }
 
 

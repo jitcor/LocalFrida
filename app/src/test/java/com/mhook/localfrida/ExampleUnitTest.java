@@ -68,6 +68,6 @@ public class ExampleUnitTest {
                 BasicObject.createUint32(22539));
     }
     public void testMessageEncoder(){
-        new FridaTask("","",0);
+
     }
 }

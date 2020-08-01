@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.mhook.libfridaapi.FridaApi;
 import com.mhook.libfridaapi.OnFridaListener;
+import com.mhook.sample.tool.common.Files;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,7 +30,7 @@ public class FridaTaskWrapper {
         try {
             String filesPath=context.getFilesDir().getAbsolutePath();
             String dexPath=filesPath + "/" + App.ASSETS_FRIDA_NAME;
-            if(MyFile.copyToFiles(context,App.ASSETS_FRIDA_NAME,dexPath)){
+            if(Files.copyToFiles(context,App.ASSETS_FRIDA_NAME,dexPath)){
                 DexClassLoader dexClassLoader = new DexClassLoader(dexPath, filesPath,  null,context.getClassLoader());
                 fridaTask = (FridaApi) newObject(dexClassLoader,App.ASSETS_FRIDA_CLASS_MAIN,new Object[]{process,script,port});
                 fridaTask.setFridaTaskListener(new OnFridaListener() {
@@ -72,6 +73,13 @@ public class FridaTaskWrapper {
                     }
 
                     @Override
+                    public void onError(String err) {
+                        if(fridaTaskListener!=null){
+                            fridaTaskListener.onError(err);
+                        }
+                    }
+
+                    @Override
                     public void onStopped() {
                         if(fridaTaskListener!=null){
                             fridaTaskListener.onStopped();
@@ -107,6 +115,7 @@ public class FridaTaskWrapper {
     public interface OnFridaTaskListener {
         void onStarted();
         void onMessage(String msg);
+        void onError(String err);
         void onStopped();
     }
 

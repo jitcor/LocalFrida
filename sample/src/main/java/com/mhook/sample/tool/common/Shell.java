@@ -1,4 +1,10 @@
-package com.mhook.sample.tool;
+package com.mhook.sample.tool.common;
+
+import com.mhook.sample.tool.common.go.Errors;
+import com.mhook.sample.tool.common.go.Result;
+import com.mhook.sample.tool.common.go.Results;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -10,7 +16,7 @@ import java.util.List;
  * ShellUtil
  * <ul>
  * <strong>Check root</strong>
- * <li>{@link Shell#permission()}</li>
+ * <li>{@link Shell#requestPermission()}</li>
  * </ul>
  * <ul>
  * <strong>Execte command</strong>
@@ -38,7 +44,7 @@ public class Shell {
      * 
      * @return
      */
-    public static boolean permission() {
+    public static boolean requestPermission() {
         return execCommand("echo root", true, false).result == 0;
     }
 
@@ -180,10 +186,10 @@ public class Shell {
         return new CommandResult(result, successMsg == null ? null : successMsg.toString(), errorMsg == null ? null
 								 : errorMsg.toString());
     }
-	public static CommandResult execCommandNoWait(String[] commands, boolean isRoot, boolean isNeedResultMsg) {
+	public static Result<String> execCommandNoWait(String[] commands, boolean isRoot, boolean isNeedResultMsg) {
         int result = -1;
         if (commands == null || commands.length == 0) {
-            return new CommandResult(result, null, null);
+            return Results.New(null, Errors.New("commands is invalid"));
         }
 
         Process process = null;
@@ -208,8 +214,7 @@ public class Shell {
             }
             os.writeBytes(COMMAND_EXIT);
             os.flush();
-
-//            result = process.waitFor();
+            result=process.waitFor();
             // get command result
             if (isNeedResultMsg) {
                 successMsg = new StringBuilder();
@@ -223,11 +228,14 @@ public class Shell {
                 while ((s = errorResult.readLine()) != null) {
                     errorMsg.append(s+"\n");
                 }
+                return Results.New(StringUtils.join(successMsg,errorMsg),result==0?null:Errors.New("run command:",StringUtils.join(commands)," error:",result));
             }
         } catch (IOException e) {
             e.printStackTrace();
+            return Results.New(null, Errors.New(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
+            return Results.New(null, Errors.New(e.getMessage()));
         } finally {
             try {
                 if (os != null) {
@@ -247,8 +255,7 @@ public class Shell {
                 process.destroy();
             }
         }
-        return new CommandResult(result, successMsg == null ? null : successMsg.toString(), errorMsg == null ? null
-								 : errorMsg.toString());
+        return Results.New(null,Errors.New("null"));
     }
 
     /**
