@@ -2,11 +2,13 @@ package com.mhook.sample.task;
 
 
 import android.Manifest;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -66,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static byte[] testSendBytes() {
-
         return new byte[]{1, 2, 3, 4};
     }
 
@@ -110,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
             List<JsBean> jsBeanList = JsBean.parse(new File(App.FRIDA_JS_PATH));
             for (JsBean jsBean : jsBeanList) {
                 fridaTaskWrapperList.add(new FridaTaskWrapper(this, jsBean.getProcess(),
-                        jsBean.getJs(), App.FRIDA_SERVER_PORT).setFridaTaskListener(new FridaTaskWrapper.OnFridaTaskListener() {
+                        jsBean.getJs(), App.FRIDA_SERVER_PORT,isReboot()).setFridaTaskListener(new FridaTaskWrapper.OnFridaTaskListener() {
                     @Override
                     public void onStarted() {
                         sendMessage(jsBean.getJsFileName(), ":Injected:", jsBean.getProcess(), "\n");
@@ -150,6 +151,10 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+    }
+
+    private boolean isReboot() {
+        return ((CheckBox)findViewById(R.id.reboot)).isChecked();
     }
 
     private void sendMessage(String... messages) {

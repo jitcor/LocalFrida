@@ -7,36 +7,47 @@
     android:orientation="vertical"
     android:padding="@dimen/bullet_gap_width"
     tools:context=".task.MainActivity">
-<LinearLayout
-    android:orientation="horizontal"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <CheckBox
+            android:id="@+id/reboot"
+            android:checked="false"
+            android:text="重启"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="注入"
+        android:clickable="true"
         android:onClick="go"
-        android:clickable="true"/>
-</LinearLayout>
-<LinearLayout
-    android:id="@+id/js_tips"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-    <TextView
-        android:text="@string/summany"
+        android:text="注入" />
+
+    <LinearLayout
+        android:id="@+id/js_tips"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-    <ImageView
-        android:src="@drawable/js_demo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-</LinearLayout>
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/summany" />
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:src="@drawable/js_demo" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/message"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="vertical"
-        android:fadeScrollbars="false"/>
+        android:fadeScrollbars="false"
+        android:scrollbars="vertical" />
 </LinearLayout>

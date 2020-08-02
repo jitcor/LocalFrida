@@ -25,14 +25,14 @@ public class FridaTaskWrapper {
     private FridaApi fridaTask;
 
     private final String process;
-    public FridaTaskWrapper(Context context,String process, String script,int port){
+    public FridaTaskWrapper(Context context,String process, String script,int port,boolean isReboot){
         this.process=process;
         try {
             String filesPath=context.getFilesDir().getAbsolutePath();
             String dexPath=filesPath + "/" + App.ASSETS_FRIDA_NAME;
             if(Files.copyToFiles(context,App.ASSETS_FRIDA_NAME,dexPath)){
                 DexClassLoader dexClassLoader = new DexClassLoader(dexPath, filesPath,  null,context.getClassLoader());
-                fridaTask = (FridaApi) newObject(dexClassLoader,App.ASSETS_FRIDA_CLASS_MAIN,new Object[]{process,script,port});
+                fridaTask = (FridaApi) newObject(dexClassLoader,App.ASSETS_FRIDA_CLASS_MAIN,new Object[]{process,script,port,isReboot});
                 fridaTask.setFridaTaskListener(new OnFridaListener() {
                     @Override
                     public void onStarted() {
